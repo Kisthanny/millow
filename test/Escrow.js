@@ -7,11 +7,13 @@ const tokens = (n) => {
 
 describe("Escrow", () => {
   const TOKEN_ID_FIRST = 1;
+  const PURCHASE_PRICE = tokens(10);
+  const ESCROW_AMOUNT = tokens(1);
   let { realEstate, escrow } = {};
-  let [seller, inspector, lender, buyer] = [];
+  let [seller, inspector, lender, buyer, randomDude] = [];
 
   beforeEach(async () => {
-    [seller, inspector, lender, buyer] = await ethers.getSigners();
+    [seller, inspector, lender, buyer, randomDude] = await ethers.getSigners();
 
     // deploy REAL ESTATE contract
     const RealEstate = await ethers.getContractFactory("RealEstate");
@@ -41,7 +43,9 @@ describe("Escrow", () => {
     await transaction.wait();
 
     // List
-    transaction = await escrow.connect(seller).list(TOKEN_ID_FIRST);
+    transaction = await escrow
+      .connect(seller)
+      .list(TOKEN_ID_FIRST, PURCHASE_PRICE, ESCROW_AMOUNT, buyer.address);
     await transaction.wait();
   });
 
@@ -76,6 +80,36 @@ describe("Escrow", () => {
     it("Updates isListed", async () => {
       const isListed = await escrow.isListed(TOKEN_ID_FIRST);
       expect(isListed).to.be.equal(true);
+    });
+
+    it("Returns purchasePrice", async () => {
+      const purchasePrice = await escrow.purchasePrice(TOKEN_ID_FIRST);
+      expect(purchasePrice).to.be.equal(PURCHASE_PRICE);
+    });
+
+    it("Returns escrowAmount", async () => {
+      const escrowAmount = await escrow.escrowAmount(TOKEN_ID_FIRST);
+      expect(escrowAmount).to.be.equal(ESCROW_AMOUNT);
+    });
+
+    it("Returns buyer", async () => {
+      const _buyer = await escrow.buyer(TOKEN_ID_FIRST);
+      expect(_buyer).to.be.equal(buyer.address);
+    });
+
+    it("Only Seller can list", async () => {
+      //   List
+      try {
+        let _transaction = await escrow
+          .connect(randomDude)
+          .list(TOKEN_ID_FIRST, PURCHASE_PRICE, ESCROW_AMOUNT, buyer.address);
+        await _transaction.wait();
+      } catch (error) {
+        expect(error.message).to.contain("revert");
+        return;
+      }
+
+      expect.fail("Expected revert but no error was thrown");
     });
   });
 });

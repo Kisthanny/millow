@@ -6,8 +6,69 @@
 // global scope, and execute the script.
 const hre = require("hardhat");
 
-async function main() {
+const tokens = (n) => {
+  return ethers.utils.parseUnits(n.toString(), "ether");
+};
 
+async function main() {
+  // Setup accounte
+  const [seller, inspector, lender, buyer, randomDude] =
+    await ethers.getSigners();
+
+  // Deploy REAL ESTATE contract
+  const RealEstate = await ethers.getContractFactory("RealEstate");
+  const realEstate = await RealEstate.deploy();
+  await realEstate.deployed();
+
+  console.log(`Deployed Real Estate Contract at: ${realEstate.address}`);
+  console.log(`Minting 3 properties...\n`);
+  for (let i = 0; i < 3; i++) {
+    const transaction = await realEstate
+      .connect(seller)
+      .mint(
+        `https://ipfs.io/ipfs/QmQVcpsjrA6cr1iJjZAodYwmPekYgbnXGo4DFubJiLc2EB/${
+          i + 1
+        }.json`
+      );
+    await transaction.wait();
+  }
+
+  // Deploy ESCROW contract
+  const Escrow = await ethers.getContractFactory("Escrow");
+  const escrow = await Escrow.deploy(
+    realEstate.address,
+    seller.address,
+    inspector.address,
+    lender.address
+  );
+  await escrow.deployed();
+  console.log(`Deployed Escrow Contract at: ${escrow.address}`);
+
+  // Approve
+  for (let i = 0; i < 3; i++) {
+    const transaction = await realEstate
+      .connect(seller)
+      .approve(escrow.address, i + 1);
+    await transaction.wait();
+  }
+
+  // // Listing properties
+  let tx = await escrow
+    .connect(seller)
+    .list(1, tokens(20), tokens(10), buyer.address);
+  await tx.wait();
+
+  tx = await escrow
+    .connect(seller)
+    .list(2, tokens(15), tokens(5), buyer.address);
+  await tx.wait();
+
+  tx = await escrow
+    .connect(seller)
+    .list(3, tokens(10), tokens(5), buyer.address);
+  await tx.wait();
+
+  console.log(`Finished.`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

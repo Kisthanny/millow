@@ -224,11 +224,6 @@
                 "type": "uint256"
             },
             {
-                "internalType": "address",
-                "name": "_buyer",
-                "type": "address"
-            },
-            {
                 "internalType": "uint256",
                 "name": "_purchasePrice",
                 "type": "uint256"
@@ -237,6 +232,11 @@
                 "internalType": "uint256",
                 "name": "_escrowAmount",
                 "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "_buyer",
+                "type": "address"
             }
         ],
         "name": "list",

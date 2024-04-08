@@ -119,7 +119,7 @@ describe("Escrow", () => {
     it("Updates Contract Balance", async () => {
       let _transaction = await escrow
         .connect(buyer)
-        .depositeEarnest(TOKEN_ID_FIRST, { value: ESCROW_AMOUNT });
+        .depositEarnest(TOKEN_ID_FIRST, { value: ESCROW_AMOUNT });
       await _transaction.wait();
       const balance = await escrow.getBalance();
       expect(balance).to.be.equal(ESCROW_AMOUNT);
@@ -130,7 +130,7 @@ describe("Escrow", () => {
       try {
         let _transaction = await escrow
           .connect(randomDude)
-          .depositeEarnest(TOKEN_ID_FIRST);
+          .depositEarnest(TOKEN_ID_FIRST);
         await _transaction.wait();
       } catch (error) {
         expect(error.message).to.contain("revert");
@@ -145,7 +145,7 @@ describe("Escrow", () => {
       try {
         let _transaction = await escrow
           .connect(buyer)
-          .depositeEarnest(TOKEN_ID_FIRST, { value: LESS_THAN_ESCROW });
+          .depositEarnest(TOKEN_ID_FIRST, { value: LESS_THAN_ESCROW });
         await _transaction.wait();
       } catch (error) {
         expect(error.message).to.contain("revert");
@@ -207,7 +207,7 @@ describe("Escrow", () => {
     beforeEach(async () => {
       let transaction = await escrow
         .connect(buyer)
-        .depositeEarnest(TOKEN_ID_FIRST, { value: ESCROW_AMOUNT });
+        .depositEarnest(TOKEN_ID_FIRST, { value: ESCROW_AMOUNT });
       await transaction.wait();
 
       transaction = await escrow

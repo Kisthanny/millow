@@ -11,7 +11,7 @@ contract Escrow {
     using Strings for uint256;
 
     address public nftAddress;
-    address public seller;
+    address payable public seller;
     address public inspector;
     address public lender;
 
@@ -125,7 +125,7 @@ contract Escrow {
         inspectionPassed[_nftID] = false;
     }
 
-    function depositeEarnest(
+    function depositEarnest(
         uint256 _nftID
     )
         public

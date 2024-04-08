@@ -37,7 +37,6 @@ const Home = ({ home, provider, escrow, togglePop, account }) => {
 
     const resInspector = await escrow.inspector();
     setInspector(resInspector);
-    console.log({ resInspector });
     const resInspectionPassed = await escrow.inspectionPassed(home.id);
     setInspectionPassed(resInspectionPassed);
   };
@@ -52,16 +51,99 @@ const Home = ({ home, provider, escrow, togglePop, account }) => {
     setOwner(resOwner);
   };
 
+  const buyHandler = async () => {
+    const escrowAmount = await escrow.escrowAmount(home.id);
+    const signer = await provider.getSigner();
+
+    // Buyer approves
+    let transaction = await escrow.connect(signer).approveSale(home.id);
+    await transaction.wait();
+
+    // Buyer deposit earnest
+    transaction = await escrow
+      .connect(signer)
+      .depositEarnest(home.id, { value: escrowAmount });
+    await transaction.wait();
+
+    setHasBought(true);
+  };
+  const inspectHandler = async () => {
+    const signer = await provider.getSigner();
+
+    // Updates inspection status
+    const transaction = await escrow
+      .connect(signer)
+      .updateInspectionStatus(home.id, true);
+    await transaction.wait();
+
+    setInspectionPassed(true);
+  };
+  const lendHandler = async () => {
+    const signer = await provider.getSigner();
+
+    // Lender approves
+    let transaction = await escrow.connect(signer).approveSale(home.id);
+    await transaction.wait();
+
+    // Lender sends fund to contract
+    const purchasePrice = await escrow.purchasePrice(home.id);
+    const escrowAmount = await escrow.escrowAmount(home.id);
+    const lendAmount = purchasePrice - escrowAmount;
+    await signer.sendTransaction({
+      to: escrow.address,
+      value: lendAmount.toString(),
+      gasLimit: 60000,
+    });
+    setHasLoaned(true);
+  };
+  const sellHandler = async () => {
+    const signer = await provider.getSigner();
+
+    // Seller approves
+    let transaction = await escrow.connect(signer).approveSale(home.id);
+    await transaction.wait();
+
+    // Seller finalize the sale
+    transaction = await escrow.connect(signer).finalizeSale(home.id);
+    await transaction.wait();
+
+    setHasSold(true);
+  };
+
   const RoleButton = () => {
     if (owner) {
       return <div className="home__owned">Owned by {formatAddress(owner)}</div>;
     }
     const roleMap = {
-      [inspector]: <button className="home__buy">Approve Inspection</button>,
-      [lender]: <button className="home__buy">Approve & Lend</button>,
-      [seller]: <button className="home__buy">Approve & Sell</button>,
+      [inspector]: (
+        <button
+          className="home__buy"
+          onClick={inspectHandler}
+          disabled={inspectionPassed}
+        >
+          Approve Inspection
+        </button>
+      ),
+      [lender]: (
+        <button
+          className="home__buy"
+          onClick={lendHandler}
+          disabled={hasLoaned}
+        >
+          Approve & Lend
+        </button>
+      ),
+      [seller]: (
+        <button className="home__buy" onClick={sellHandler} disabled={hasSold}>
+          Approve & Sell
+        </button>
+      ),
     };
-    const buyButton = <button className="home__buy">Buy</button>;
+    const buyButton = (
+      <button className="home__buy" onClick={buyHandler} disabled={hasBought}>
+        Buy
+      </button>
+    );
     // return roleMap[account] || buyButton;
     return (
       <div>

@@ -1,5 +1,5 @@
 import logo from "../assets/logo.svg";
-
+import { formatAddress } from "../lib/utils";
 const Navigation = ({ account, setAccount }) => {
   const connectHandler = async () => {
     if (account) {
@@ -12,12 +12,6 @@ const Navigation = ({ account, setAccount }) => {
       method: "eth_requestAccounts",
     });
     setAccount(accounts[0]);
-  };
-  const formatAccount = () => {
-    if (!account) {
-      return "";
-    }
-    return `${account.slice(0, 6)}...${account.slice(-4)}`;
   };
   return (
     <nav>
@@ -39,7 +33,7 @@ const Navigation = ({ account, setAccount }) => {
       </div>
 
       <button type="button" className="nav__connect" onClick={connectHandler}>
-        {formatAccount() || "Connect"}
+        {formatAddress(account) || "Connect"}
       </button>
     </nav>
   );

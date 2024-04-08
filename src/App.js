@@ -14,12 +14,44 @@ import Escrow from "./abis/Escrow.json";
 import config from "./config.json";
 
 function App() {
+  const [provider, setProvider] = useState(null);
+  const [escrow, setEscrow] = useState(null);
   const [account, setAccount] = useState(null);
+  const [homes, setHomes] = useState([]);
+  const [home, setHome] = useState({});
+  const [toggle, setToggle] = useState(false);
   const loadBlockchainData = async () => {
     if (window.ethereum === undefined) {
       throw new Error("please install Metamask");
     }
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+    setProvider(web3Provider);
+
+    const network = await web3Provider.getNetwork();
+
+    const realEstate = new ethers.Contract(
+      config[network.chainId].realEstate.address,
+      RealEstate,
+      web3Provider
+    );
+    const totalSupply = Number((await realEstate.totalSupply()).toString());
+    const metadatas = [];
+
+    for (let i = 0; i < totalSupply; i++) {
+      const uri = await realEstate.tokenURI(i + 1);
+      const response = await fetch(uri);
+      const metadata = await response.json();
+      metadatas.push(metadata);
+    }
+    setHomes(metadatas);
+    console.log(metadatas);
+
+    const escrowContract = new ethers.Contract(
+      config[network.chainId].escrow.address,
+      Escrow,
+      web3Provider
+    );
+    setEscrow(escrowContract);
 
     window.ethereum.on("accountsChanged", async () => {
       const accounts = await window.ethereum.request({
@@ -34,6 +66,10 @@ function App() {
     loadBlockchainData();
   }, []);
 
+  const togglePop = (homeItem) => {
+    setHome(homeItem);
+    setToggle(!toggle);
+  };
   return (
     <div>
       <Navigation account={account} setAccount={setAccount} />
@@ -44,22 +80,38 @@ function App() {
         <hr />
 
         <div className="cards">
-          <div className="card">
-            <div className="card__image">
-              <img src="" alt="Home" />
+          {homes.map((homeItem) => (
+            <div
+              className="card"
+              key={homeItem.id}
+              onClick={togglePop.bind(null, homeItem)}
+            >
+              <div className="card__image">
+                <img src={homeItem.image} alt="Home" />
+              </div>
+              <div className="card__info">
+                <h4>{homeItem.attributes[0].value} ETH</h4>
+                <p>
+                  <strong>{homeItem.attributes[1].value}</strong> |
+                  <strong>{homeItem.attributes[2].value}</strong> bds |
+                  <strong>{homeItem.attributes[3].value}</strong> ba |
+                  <strong>{homeItem.attributes[4].value}</strong> sqft
+                </p>
+                <p>{homeItem.address}</p>
+              </div>
             </div>
-            <div className="card__info">
-              <h4>1 ETH</h4>
-              <p>
-                <strong>1</strong> bds |
-                <strong>2</strong> ba |
-                <strong>3</strong> sqft
-              </p>
-              <p>1234 Elm St</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
+      {toggle && (
+        <Home
+          account={account}
+          home={home}
+          provider={provider}
+          escrow={escrow}
+          togglePop={togglePop}
+        />
+      )}
     </div>
   );
 }
